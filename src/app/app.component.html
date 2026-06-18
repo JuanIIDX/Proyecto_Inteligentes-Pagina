@@ -1,0 +1,249 @@
+<!-- ════════════════ NAVBAR ════════════════ -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c0 1 2.5 3 6 3s6-2 6-3v-5"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">Solicitudes Universitarias</span>
+        <span class="brand-sub">Sistema Inteligente · IA + Optimización</span>
+      </div>
+    </div>
+
+    <div class="modes">
+      <button
+        *ngFor="let m of modos"
+        type="button"
+        class="mode-btn"
+        [class.active]="modo === m.id"
+        (click)="cambiarModo(m.id)"
+        [title]="m.descripcion">
+        <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+             [innerHTML]="m.icono"></svg>
+        <span class="mode-label">{{ m.nombre }}</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ════════════════ HERO ════════════════ -->
+<header class="hero">
+  <div class="hero-badge">
+    <span class="hero-dot"
+          [class.ok]="conexionEstado === 'ok'"
+          [class.err]="conexionEstado === 'error'"></span>
+    <ng-container [ngSwitch]="conexionEstado">
+      <span *ngSwitchCase="'verificando'">Verificando conexión…</span>
+      <span *ngSwitchCase="'ok'">Conectado · {{ urlConexion }}</span>
+      <span *ngSwitchCase="'error'">Sin conexión · {{ urlConexion }}</span>
+    </ng-container>
+  </div>
+  <h1>Gestión <em>inteligente</em> de solicitudes</h1>
+  <p>Clasificación, priorización y asignación automática mediante IA. Estás operando en modo
+    <strong>{{ modoActual.nombre }}</strong> — {{ modoActual.descripcion }}.</p>
+</header>
+
+<main class="container">
+
+  <!-- ──────────── FORMULARIO ──────────── -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16v16H4z"/><path d="m4 6 8 6 8-6"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Nueva solicitud</h2>
+        <p>Describe tu solicitud y la IA hará el resto</p>
+      </div>
+    </div>
+
+    <form class="card-body" (ngSubmit)="enviar()">
+      <label for="asunto">Asunto</label>
+      <input id="asunto" type="text" name="asunto" [(ngModel)]="form.asunto"
+             maxlength="200" placeholder="Ej: No puedo acceder a Moodle" required />
+
+      <label for="descripcion">Descripción</label>
+      <textarea id="descripcion" name="descripcion" rows="4" [(ngModel)]="form.descripcion"
+                maxlength="2000"
+                placeholder="Describe el problema o la solicitud con el mayor detalle posible…"
+                required></textarea>
+
+      <label for="solicitante">Solicitante <span class="opcional">(opcional)</span></label>
+      <input id="solicitante" type="text" name="solicitante" [(ngModel)]="form.solicitante"
+             maxlength="120" placeholder="Ej: Juan Pérez — Estudiante Ing. Sistemas" />
+
+      <button type="submit" class="btn-primary" [disabled]="enviando">
+        <span class="spinner" *ngIf="enviando"></span>
+        {{ enviando ? 'Clasificando con IA…' : 'Clasificar y enviar' }}
+      </button>
+
+      <!-- Resultado -->
+      <div class="result" *ngIf="resultado">
+        <div class="result-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          Solicitud procesada por el sistema inteligente
+        </div>
+        <dl>
+          <dt *ngIf="resultado.id != null">ID</dt>
+          <dd *ngIf="resultado.id != null">#{{ resultado.id }}</dd>
+
+          <dt>Categoría</dt>
+          <dd>{{ resultado.categoria || '—' }}</dd>
+
+          <dt>Prioridad</dt>
+          <dd>
+            <span class="badge" *ngIf="resultado.prioridad; else sinPrioridad"
+                  [class.alta]="resultado.prioridad === 'Alta'"
+                  [class.media]="resultado.prioridad === 'Media'"
+                  [class.baja]="resultado.prioridad === 'Baja'">
+              {{ resultado.prioridad }}
+              <ng-container *ngIf="resultado.prioridadNum"> ({{ resultado.prioridadNum }})</ng-container>
+            </span>
+            <ng-template #sinPrioridad>—</ng-template>
+          </dd>
+
+          <dt>Responsable</dt>
+          <dd>{{ resultado.responsable || '—' }}</dd>
+
+          <dt *ngIf="resultado.razonamiento">Razonamiento</dt>
+          <dd *ngIf="resultado.razonamiento" class="razon">{{ resultado.razonamiento }}</dd>
+        </dl>
+      </div>
+
+      <!-- Error -->
+      <div class="alert" *ngIf="error">
+        <strong>Error:</strong> {{ error }}
+      </div>
+    </form>
+  </section>
+
+  <!-- ──────────── OPTIMIZACIÓN A* (solo local/langchain) ──────────── -->
+  <section class="card" *ngIf="soportaOptimizacion">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Optimización de asignaciones (A*)</h2>
+        <p>Minimiza el costo total del lote de solicitudes pendientes</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <button type="button" class="btn-secondary" (click)="optimizar()" [disabled]="optimizando">
+        <span class="spinner dark" *ngIf="optimizando"></span>
+        {{ optimizando ? 'Optimizando…' : 'Optimizar asignaciones pendientes' }}
+      </button>
+
+      <div class="alert" *ngIf="errorOptimizacion">
+        <strong>Error:</strong> {{ errorOptimizacion }}
+      </div>
+
+      <ng-container *ngIf="optimizacion">
+        <div class="metrics">
+          <div class="metric"><span>Nodos explorados</span><strong>{{ optimizacion.nodos_explorados }}</strong></div>
+          <div class="metric"><span>Tiempo</span><strong>{{ optimizacion.tiempo_ejecucion_ms | number:'1.0-2' }} ms</strong></div>
+          <div class="metric"><span>Costo total</span><strong>{{ optimizacion.costo_total | number:'1.0-3' }}</strong></div>
+          <div class="metric"><span>Asignaciones</span><strong>{{ optimizacion.asignaciones?.length || 0 }}</strong></div>
+        </div>
+
+        <div class="alert" *ngIf="optimizacion.sin_solucion?.length">
+          Sin funcionario candidato para:
+          <ng-container *ngFor="let id of optimizacion.sin_solucion; let last = last">#{{ id }}<span *ngIf="!last">, </span></ng-container>
+        </div>
+
+        <div class="table-scroll" *ngIf="optimizacion.asignaciones?.length">
+          <table>
+            <thead><tr><th>Solicitud</th><th>Funcionario asignado</th><th>Costo g(n)</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let a of optimizacion.asignaciones">
+                <td>#{{ a.solicitud_id }}</td>
+                <td>{{ a.funcionario_nombre }}</td>
+                <td>{{ a.costo | number:'1.0-3' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+    </div>
+  </section>
+
+  <!-- ──────────── HISTORIAL ──────────── -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 5h18M3 12h18M3 19h18"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Historial de solicitudes</h2>
+        <p>{{ historial.length }} solicitud(es) registrada(s)</p>
+      </div>
+      <button type="button" class="btn-ghost" (click)="cargarHistorial()" [disabled]="cargandoHistorial">
+        <span class="spinner dark" *ngIf="cargandoHistorial"></span>
+        Refrescar
+      </button>
+    </div>
+
+    <div class="card-body">
+      <p class="empty" *ngIf="cargandoHistorial">Cargando…</p>
+
+      <div class="alert" *ngIf="errorHistorial && !cargandoHistorial">
+        <strong>Error:</strong> {{ errorHistorial }}
+      </div>
+
+      <p class="empty" *ngIf="!cargandoHistorial && !errorHistorial && historial.length === 0">
+        Aún no hay solicitudes registradas.
+      </p>
+
+      <div class="table-scroll" *ngIf="!cargandoHistorial && historial.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Asunto</th><th>Descripción</th><th>Categoría</th>
+              <th>Prioridad</th><th>Responsable</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of historial; trackBy: trackById">
+              <td class="td-id">#{{ s.id ?? '—' }}</td>
+              <td class="td-asunto">{{ s.asunto || '—' }}</td>
+              <td class="td-desc">{{ s.descripcion || '—' }}</td>
+              <td>{{ s.categoria || '—' }}</td>
+              <td>
+                <span class="badge" *ngIf="s.prioridad; else dash"
+                      [class.alta]="s.prioridad === 'Alta'"
+                      [class.media]="s.prioridad === 'Media'"
+                      [class.baja]="s.prioridad === 'Baja'">{{ s.prioridad }}</span>
+                <ng-template #dash>—</ng-template>
+              </td>
+              <td>{{ s.responsable || '—' }}</td>
+              <td>{{ s.estado || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  © 2026 · Sistema Inteligente de Solicitudes Universitarias · IA &amp; Optimización Heurística
+</footer>
