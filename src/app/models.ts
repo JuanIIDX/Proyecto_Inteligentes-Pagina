@@ -34,3 +34,32 @@ export interface ModoInfo {
   /** SVG inline del icono. */
   icono: string;
 }
+
+// ───────────────────────── RAG ─────────────────────────
+
+/** Documento indexado en el RAG. */
+export interface RagDocumento {
+  fuente: string;
+  fragmentos: number;
+}
+
+/** Un fragmento recuperado (retrieval). */
+export interface RagFragmento {
+  contenido: string;
+  fuente: string;
+  /** Distancia: menor = más parecido. */
+  score: number;
+}
+
+/** Respuesta de búsqueda (retrieval puro). */
+export interface RagBusqueda {
+  consulta: string;
+  fragmentos: RagFragmento[];
+}
+
+/** Respuesta de la IA con contexto RAG. */
+export interface RagRespuesta {
+  pregunta: string;
+  respuesta: string;
+  fuentes: string[];
+}

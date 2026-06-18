@@ -20,7 +20,7 @@
         *ngFor="let m of modos"
         type="button"
         class="mode-btn"
-        [class.active]="modo === m.id"
+        [class.active]="!vistaRag && modo === m.id"
         (click)="cambiarModo(m.id)"
         [title]="m.descripcion">
         <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -28,12 +28,26 @@
              [innerHTML]="m.icono"></svg>
         <span class="mode-label">{{ m.nombre }}</span>
       </button>
+
+      <button
+        type="button"
+        class="mode-btn"
+        [class.active]="vistaRag"
+        (click)="abrirRag()"
+        title="Configurar la base de conocimiento (RAG)">
+        <svg class="mode-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <span class="mode-label">Configurar RAG</span>
+      </button>
     </div>
   </div>
 </nav>
 
 <!-- ════════════════ HERO ════════════════ -->
-<header class="hero">
+<header class="hero" *ngIf="!vistaRag">
   <div class="hero-badge">
     <span class="hero-dot"
           [class.ok]="conexionEstado === 'ok'"
@@ -49,7 +63,18 @@
     <strong>{{ modoActual.nombre }}</strong> — {{ modoActual.descripcion }}.</p>
 </header>
 
-<main class="container">
+<!-- ════════════════ HERO RAG ════════════════ -->
+<header class="hero" *ngIf="vistaRag">
+  <div class="hero-badge">
+    <span class="hero-dot ok"></span>
+    Base de conocimiento · {{ urlRag }}
+  </div>
+  <h1>Configurar <em>RAG</em></h1>
+  <p>Sube documentos (.txt o .md), explora los fragmentos recuperados y pregunta a la IA
+    usando tu base de conocimiento.</p>
+</header>
+
+<main class="container" *ngIf="!vistaRag">
 
   <!-- ──────────── FORMULARIO ──────────── -->
   <section class="card">
@@ -240,6 +265,195 @@
         </table>
       </div>
     </div>
+  </section>
+
+</main>
+
+<!-- ════════════════ PANEL RAG ════════════════ -->
+<main class="container" *ngIf="vistaRag">
+
+  <!-- ──────────── SUBIR DOCUMENTO ──────────── -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <path d="M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Subir documento</h2>
+        <p>Archivos .txt, .md o .pdf — se fragmentan e indexan automáticamente</p>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <input type="file" accept=".txt,.md,.pdf" (change)="ragArchivoSeleccionado($event)" />
+
+      <button type="button" class="btn-primary" (click)="ragSubir()"
+              [disabled]="ragSubiendo || !ragArchivo">
+        <span class="spinner" *ngIf="ragSubiendo"></span>
+        {{ ragSubiendo ? 'Subiendo e indexando…' : 'Subir documento' }}
+      </button>
+
+      <div class="result" *ngIf="ragResultadoSubida">
+        <div class="result-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Documento indexado
+        </div>
+        <dl>
+          <dt>Fuente</dt><dd>{{ ragResultadoSubida.fuente }}</dd>
+          <dt>Fragmentos</dt><dd>{{ ragResultadoSubida.fragmentos }}</dd>
+        </dl>
+      </div>
+
+      <div class="alert" *ngIf="ragErrorSubida">
+        <strong>Error:</strong> {{ ragErrorSubida }}
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────── DOCUMENTOS INDEXADOS ──────────── -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <path d="M14 2v6h6M9 13h6M9 17h6"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Documentos indexados</h2>
+        <p>{{ ragDocumentos.length }} documento(s) en la base de conocimiento</p>
+      </div>
+      <button type="button" class="btn-ghost" (click)="cargarRagDocumentos()" [disabled]="ragCargandoDocs">
+        <span class="spinner dark" *ngIf="ragCargandoDocs"></span>
+        Refrescar
+      </button>
+    </div>
+
+    <div class="card-body">
+      <p class="empty" *ngIf="ragCargandoDocs">Cargando…</p>
+
+      <div class="alert" *ngIf="ragErrorDocs && !ragCargandoDocs">
+        <strong>Error:</strong> {{ ragErrorDocs }}
+      </div>
+
+      <p class="empty" *ngIf="!ragCargandoDocs && !ragErrorDocs && ragDocumentos.length === 0">
+        Aún no hay documentos indexados.
+      </p>
+
+      <div class="table-scroll" *ngIf="!ragCargandoDocs && ragDocumentos.length > 0">
+        <table>
+          <thead><tr><th>Fuente</th><th>Fragmentos</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let d of ragDocumentos">
+              <td>{{ d.fuente }}</td>
+              <td>{{ d.fragmentos }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────── BUSCAR (retrieval puro) ──────────── -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Buscar fragmentos</h2>
+        <p>Retrieval puro, sin IA — score es distancia (menor = más parecido)</p>
+      </div>
+    </div>
+
+    <form class="card-body" (ngSubmit)="ragBuscarFragmentos()">
+      <label for="ragQuery">Consulta</label>
+      <input id="ragQuery" type="text" name="ragQuery" [(ngModel)]="ragQuery"
+             placeholder="Ej: perder materias" required />
+
+      <label for="ragK">Resultados (k) <span class="opcional">(1–20)</span></label>
+      <input id="ragK" type="number" name="ragK" [(ngModel)]="ragK" min="1" max="20" />
+
+      <button type="submit" class="btn-secondary" [disabled]="ragBuscando || !ragQuery.trim()">
+        <span class="spinner dark" *ngIf="ragBuscando"></span>
+        {{ ragBuscando ? 'Buscando…' : 'Buscar' }}
+      </button>
+
+      <div class="alert" *ngIf="ragErrorBusqueda">
+        <strong>Error:</strong> {{ ragErrorBusqueda }}
+      </div>
+
+      <div class="table-scroll" *ngIf="ragBusqueda?.fragmentos?.length">
+        <table>
+          <thead><tr><th>Contenido</th><th>Fuente</th><th>Score</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let f of ragBusqueda!.fragmentos">
+              <td class="td-desc">{{ f.contenido }}</td>
+              <td>{{ f.fuente }}</td>
+              <td>{{ f.score | number:'1.0-3' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="empty" *ngIf="ragBusqueda && ragBusqueda.fragmentos.length === 0">
+        Sin coincidencias para «{{ ragBusqueda.consulta }}».
+      </p>
+    </form>
+  </section>
+
+  <!-- ──────────── PREGUNTAR (IA responde) ──────────── -->
+  <section class="card">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Preguntar a la IA</h2>
+        <p>La IA responde usando el contexto de tus documentos</p>
+      </div>
+    </div>
+
+    <form class="card-body" (ngSubmit)="ragPreguntarIA()">
+      <label for="ragPregunta">Pregunta</label>
+      <textarea id="ragPregunta" name="ragPregunta" rows="3" [(ngModel)]="ragPregunta"
+                placeholder="Ej: ¿Cuántas materias puedo perder?" required></textarea>
+
+      <button type="submit" class="btn-primary" [disabled]="ragPreguntando || !ragPregunta.trim()">
+        <span class="spinner" *ngIf="ragPreguntando"></span>
+        {{ ragPreguntando ? 'Consultando a la IA…' : 'Preguntar' }}
+      </button>
+
+      <div class="alert" *ngIf="ragErrorPregunta">
+        <strong>Error:</strong> {{ ragErrorPregunta }}
+      </div>
+
+      <div class="result" *ngIf="ragRespuesta">
+        <div class="result-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Respuesta
+        </div>
+        <dl>
+          <dt>Pregunta</dt><dd>{{ ragRespuesta.pregunta }}</dd>
+          <dt>Respuesta</dt><dd class="razon">{{ ragRespuesta.respuesta }}</dd>
+          <dt *ngIf="ragRespuesta.fuentes?.length">Fuentes</dt>
+          <dd *ngIf="ragRespuesta.fuentes?.length">{{ ragRespuesta.fuentes.join(', ') }}</dd>
+        </dl>
+      </div>
+    </form>
   </section>
 
 </main>

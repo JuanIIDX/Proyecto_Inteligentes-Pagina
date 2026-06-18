@@ -2,7 +2,16 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SolicitudesService } from './solicitudes.service';
-import { FormularioSolicitud, Modo, ModoInfo, ResultadoSolicitud, Solicitud } from './models';
+import {
+  FormularioSolicitud,
+  Modo,
+  ModoInfo,
+  RagBusqueda,
+  RagDocumento,
+  RagRespuesta,
+  ResultadoSolicitud,
+  Solicitud,
+} from './models';
 
 @Component({
   selector: 'app-root',
@@ -40,7 +49,31 @@ export class AppComponent implements OnInit {
 
   modo: Modo = 'local';
 
+  /** Cuando es true se muestra el panel "Configurar RAG" en lugar de los modos. */
+  vistaRag = false;
+
   form: FormularioSolicitud = { asunto: '', descripcion: '', solicitante: '' };
+
+  // ── Estado del panel RAG ──
+  ragDocumentos: RagDocumento[] = [];
+  ragCargandoDocs = false;
+  ragErrorDocs: string | null = null;
+
+  ragArchivo: File | null = null;
+  ragSubiendo = false;
+  ragErrorSubida: string | null = null;
+  ragResultadoSubida: RagDocumento | null = null;
+
+  ragQuery = '';
+  ragK: number | null = 3;
+  ragBuscando = false;
+  ragBusqueda: RagBusqueda | null = null;
+  ragErrorBusqueda: string | null = null;
+
+  ragPregunta = '';
+  ragPreguntando = false;
+  ragRespuesta: RagRespuesta | null = null;
+  ragErrorPregunta: string | null = null;
 
   conexionEstado: 'verificando' | 'ok' | 'error' = 'verificando';
   enviando = false;
@@ -70,7 +103,12 @@ export class AppComponent implements OnInit {
     return this.svc.urlConexion(this.modo);
   }
 
+  get urlRag(): string {
+    return this.svc.urlRag();
+  }
+
   async cambiarModo(modo: Modo): Promise<void> {
+    this.vistaRag = false;
     this.modo = modo;
     // Resetea estado dependiente del modo
     this.resultado = null;
@@ -140,5 +178,77 @@ export class AppComponent implements OnInit {
 
   trackById(_: number, s: Solicitud) {
     return s.id ?? _;
+  }
+
+  // ───────────────────────── RAG ─────────────────────────
+
+  abrirRag(): void {
+    this.vistaRag = true;
+    this.cargarRagDocumentos();
+  }
+
+  ragArchivoSeleccionado(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.ragArchivo = input.files?.[0] ?? null;
+    this.ragErrorSubida = null;
+    this.ragResultadoSubida = null;
+  }
+
+  async ragSubir(): Promise<void> {
+    if (this.ragSubiendo || !this.ragArchivo) return;
+    this.ragSubiendo = true;
+    this.ragErrorSubida = null;
+    this.ragResultadoSubida = null;
+    try {
+      this.ragResultadoSubida = await this.svc.ragSubirDocumento(this.ragArchivo);
+      this.ragArchivo = null;
+      await this.cargarRagDocumentos();
+    } catch (e: any) {
+      this.ragErrorSubida = e?.message ?? 'No se pudo subir el documento.';
+    } finally {
+      this.ragSubiendo = false;
+    }
+  }
+
+  async cargarRagDocumentos(): Promise<void> {
+    this.ragCargandoDocs = true;
+    this.ragErrorDocs = null;
+    try {
+      this.ragDocumentos = await this.svc.ragListarDocumentos();
+    } catch (e: any) {
+      this.ragDocumentos = [];
+      this.ragErrorDocs = e?.message ?? 'No se pudieron cargar los documentos.';
+    } finally {
+      this.ragCargandoDocs = false;
+    }
+  }
+
+  async ragBuscarFragmentos(): Promise<void> {
+    if (this.ragBuscando || !this.ragQuery.trim()) return;
+    this.ragBuscando = true;
+    this.ragErrorBusqueda = null;
+    this.ragBusqueda = null;
+    try {
+      const k = this.ragK != null ? Math.min(20, Math.max(1, this.ragK)) : undefined;
+      this.ragBusqueda = await this.svc.ragBuscar(this.ragQuery.trim(), k);
+    } catch (e: any) {
+      this.ragErrorBusqueda = e?.message ?? 'No se pudo realizar la búsqueda.';
+    } finally {
+      this.ragBuscando = false;
+    }
+  }
+
+  async ragPreguntarIA(): Promise<void> {
+    if (this.ragPreguntando || !this.ragPregunta.trim()) return;
+    this.ragPreguntando = true;
+    this.ragErrorPregunta = null;
+    this.ragRespuesta = null;
+    try {
+      this.ragRespuesta = await this.svc.ragPreguntar(this.ragPregunta.trim());
+    } catch (e: any) {
+      this.ragErrorPregunta = e?.message ?? 'No se pudo obtener la respuesta.';
+    } finally {
+      this.ragPreguntando = false;
+    }
   }
 }

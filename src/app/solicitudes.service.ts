@@ -1,5 +1,13 @@
 import { Injectable } from '@angular/core';
-import { FormularioSolicitud, Modo, ResultadoSolicitud, Solicitud } from './models';
+import {
+  FormularioSolicitud,
+  Modo,
+  RagBusqueda,
+  RagDocumento,
+  RagRespuesta,
+  ResultadoSolicitud,
+  Solicitud,
+} from './models';
 
 /** Configuración de endpoints por modo. */
 const CONFIG = {
@@ -14,6 +22,9 @@ const CONFIG = {
     consultar: 'https://soulking3004x.app.n8n.cloud/webhook/aeeecd50-fef0-43ef-8b50-a18e8571e7a7',
   },
 } as const;
+
+/** Backend contra el que corren los endpoints /rag/* (Azure / Langchain). */
+const RAG_BASE = CONFIG.langchain.base;
 
 /** Convierte una prioridad numérica (1-5) o texto a la etiqueta normalizada. */
 function normalizarPrioridad(valor: unknown): 'Alta' | 'Media' | 'Baja' | null {
@@ -155,5 +166,53 @@ export class SolicitudesService {
       razonamiento: s?.justificacion ?? s?.justification ?? s?.justificacion_prioridad,
       fecha: s?.fecha ?? null,
     };
+  }
+
+  // ───────────────────────── RAG (Azure / Langchain) ─────────────────────────
+
+  /** URL del backend RAG (para mostrar en la UI). */
+  urlRag(): string {
+    return RAG_BASE;
+  }
+
+  /** Sube un documento (.txt o .md) como multipart/form-data. */
+  async ragSubirDocumento(archivo: File): Promise<RagDocumento> {
+    const fd = new FormData();
+    fd.append('archivo', archivo);
+    // No fijar Content-Type manualmente: fetch añade el boundary del multipart.
+    const r = await fetch(`${RAG_BASE}/rag/documentos`, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
+    return data;
+  }
+
+  /** Lista los documentos indexados. */
+  async ragListarDocumentos(): Promise<RagDocumento[]> {
+    const r = await fetch(`${RAG_BASE}/rag/documentos`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  /** Retrieval puro (sin IA). k es opcional (1–20). */
+  async ragBuscar(q: string, k?: number): Promise<RagBusqueda> {
+    const params = new URLSearchParams({ q });
+    if (k != null) params.set('k', String(k));
+    const r = await fetch(`${RAG_BASE}/rag/buscar?${params.toString()}`);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
+    return data;
+  }
+
+  /** Pregunta a la IA con contexto RAG. */
+  async ragPreguntar(pregunta: string): Promise<RagRespuesta> {
+    const r = await fetch(`${RAG_BASE}/rag/preguntar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pregunta }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
+    return data;
   }
 }
