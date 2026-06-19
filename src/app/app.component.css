@@ -150,9 +150,9 @@
 
 /* ════════════════ CONTENEDOR ════════════════ */
 .container {
-  max-width: 1080px;
+  max-width: none;
   margin: 0 auto;
-  padding: 12px 22px 40px;
+  padding: 12px 28px 40px;
   display: grid;
   gap: 22px;
 }
@@ -458,18 +458,10 @@ tbody td { padding: 11px 14px; border-bottom: 1px solid var(--line-soft); color:
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: #f8fafc; }
 .td-id { font-weight: 800; color: var(--brand-deep); white-space: nowrap; }
-.td-asunto { font-weight: 600; max-width: 200px; }
-.td-desc { max-width: 240px; color: var(--muted); font-size: .8rem; }
+.td-asunto { font-weight: 600; max-width: 220px; }
+.td-desc { max-width: 340px; color: var(--muted); font-size: .8rem; }
 
 .empty { text-align: center; padding: 28px; color: var(--muted); font-size: .88rem; }
-
-/* ════════════════ FOOTER ════════════════ */
-.footer {
-  text-align: center;
-  padding: 24px;
-  font-size: .74rem;
-  color: rgba(255,255,255,.4);
-}
 
 /* ════════════════ RESPONSIVE ════════════════ */
 @media (max-width: 720px) {

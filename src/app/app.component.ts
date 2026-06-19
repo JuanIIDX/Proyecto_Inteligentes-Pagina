@@ -88,10 +88,6 @@ export class AppComponent implements OnInit {
     this.cambiarModo(this.modo);
   }
 
-  get modoActual(): ModoInfo {
-    return this.modos.find((m) => m.id === this.modo)!;
-  }
-
   get urlConexion(): string {
     return this.svc.urlConexion(this.modo);
   }
