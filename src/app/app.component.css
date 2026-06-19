@@ -439,40 +439,6 @@ input:focus, textarea:focus {
 .metric span { display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
 .metric strong { display: block; margin-top: 5px; font-size: 1.25rem; color: var(--brand-deep); }
 
-/* ════════════════ COMPARACIÓN DE TÉCNICAS ════════════════ */
-.hint { margin: 16px 0 0; font-size: .85rem; color: var(--muted); }
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-.chart-box {
-  position: relative;
-  height: 260px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--line-soft);
-  background: #fff;
-}
-.chart-box.wide { margin-top: 16px; height: 300px; }
-
-.subhead {
-  margin: 26px 0 12px;
-  font-size: .95rem;
-  font-weight: 800;
-  color: var(--ink);
-}
-.tree-scroll {
-  overflow-x: auto;
-  border-radius: 12px;
-  border: 1px solid var(--line-soft);
-  background: linear-gradient(160deg, #f8fafc, #fff);
-  padding: 8px;
-}
-.astar-tree { display: block; min-width: 100%; }
-
 /* ════════════════ TABLAS ════════════════ */
 .table-scroll { margin-top: 18px; overflow-x: auto; border-radius: 12px; border: 1px solid var(--line); }
 table { width: 100%; border-collapse: collapse; font-size: .84rem; }

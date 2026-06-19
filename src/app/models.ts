@@ -63,31 +63,3 @@ export interface RagRespuesta {
   respuesta: string;
   fuentes: string[];
 }
-
-// ───────────────────────── Comparación de técnicas (SI1) ─────────────────────────
-
-export interface TecnicaComparada {
-  nombre: string;
-  tipo: string;
-  costo_total: number;
-  esfuerzo: number;
-  esfuerzo_etiqueta: string;
-  tiempo_ejecucion_ms: number;
-  optimo: boolean;
-}
-
-export interface NodoAstar {
-  id: number;
-  padre: number | null;
-  indice: number;
-  g: number;
-  h: number;
-  f: number;
-}
-
-export interface ComparacionTecnicas {
-  num_solicitudes: number;
-  tecnicas: TecnicaComparada[];
-  arbol_astar: NodoAstar[];
-  convergencia_genetico: number[];
-}

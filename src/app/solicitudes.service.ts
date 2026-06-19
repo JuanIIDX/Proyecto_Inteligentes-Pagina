@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import {
-  ComparacionTecnicas,
   FormularioSolicitud,
   Modo,
   RagBusqueda,
@@ -70,32 +69,10 @@ export class SolicitudesService {
     return modo === 'n8n' ? this.listarN8n() : this.listarRest(modo);
   }
 
-  /** Sólo disponible en local / langchain (búsqueda A*). */
-  soportaOptimizacion(modo: Modo): boolean {
-    return modo !== 'n8n';
-  }
-
   /** URL a la que se conecta cada modo (para mostrar en la UI). */
   urlConexion(modo: Modo): string {
     if (modo === 'n8n') return CONFIG.n8n.consultar;
     return modo === 'local' ? CONFIG.local.base : CONFIG.langchain.base;
-  }
-
-  async optimizar(modo: Modo): Promise<any> {
-    const base = modo === 'local' ? CONFIG.local.base : CONFIG.langchain.base;
-    const r = await fetch(`${base}/optimizar-asignaciones`, { method: 'POST' });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
-    return data;
-  }
-
-  /** Compara técnicas de búsqueda (SI1) sobre las solicitudes existentes. */
-  async compararTecnicas(modo: Modo): Promise<ComparacionTecnicas> {
-    const base = modo === 'local' ? CONFIG.local.base : CONFIG.langchain.base;
-    const r = await fetch(`${base}/comparar-tecnicas`, { method: 'POST' });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
-    return data;
   }
 
   // ───────────────────────── REST (local + langchain) ─────────────────────────
