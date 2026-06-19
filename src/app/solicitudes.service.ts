@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import {
+  ComparacionTecnicas,
   FormularioSolicitud,
   Modo,
   RagBusqueda,
@@ -83,6 +84,15 @@ export class SolicitudesService {
   async optimizar(modo: Modo): Promise<any> {
     const base = modo === 'local' ? CONFIG.local.base : CONFIG.langchain.base;
     const r = await fetch(`${base}/optimizar-asignaciones`, { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
+    return data;
+  }
+
+  /** Compara técnicas de búsqueda (SI1) sobre las solicitudes existentes. */
+  async compararTecnicas(modo: Modo): Promise<ComparacionTecnicas> {
+    const base = modo === 'local' ? CONFIG.local.base : CONFIG.langchain.base;
+    const r = await fetch(`${base}/comparar-tecnicas`, { method: 'POST' });
     const data = await r.json();
     if (!r.ok) throw new Error(data?.detail || `HTTP ${r.status}`);
     return data;

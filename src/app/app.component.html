@@ -120,31 +120,47 @@
           </svg>
           Solicitud procesada por el sistema inteligente
         </div>
-        <dl>
-          <dt *ngIf="resultado.id != null">ID</dt>
-          <dd *ngIf="resultado.id != null">#{{ resultado.id }}</dd>
 
-          <dt>Categoría</dt>
-          <dd>{{ resultado.categoria || '—' }}</dd>
+        <div class="result-body">
+          <div class="result-grid">
+            <div class="field">
+              <span class="field-label">Categoría detectada</span>
+              <span class="field-value">{{ resultado.categoria || '—' }}</span>
+            </div>
+            <div class="field">
+              <span class="field-label">Dependencia asignada</span>
+              <span class="field-value">{{ resultado.responsable || '—' }}</span>
+            </div>
 
-          <dt>Prioridad</dt>
-          <dd>
-            <span class="badge" *ngIf="resultado.prioridad; else sinPrioridad"
-                  [class.alta]="resultado.prioridad === 'Alta'"
-                  [class.media]="resultado.prioridad === 'Media'"
-                  [class.baja]="resultado.prioridad === 'Baja'">
-              {{ resultado.prioridad }}
-              <ng-container *ngIf="resultado.prioridadNum"> ({{ resultado.prioridadNum }})</ng-container>
-            </span>
-            <ng-template #sinPrioridad>—</ng-template>
-          </dd>
+            <div class="field">
+              <span class="field-label">Prioridad calculada</span>
+              <span class="prio-pill" [ngClass]="claseNivel(resultado)"
+                    *ngIf="nivelPrioridad(resultado) as nivel; else sinPrio">
+                <span class="prio-fill" [style.width.%]="nivel * 20"></span>
+                <span class="prio-text">{{ nivel }} — {{ etiquetaUrgencia(resultado) }}</span>
+              </span>
+              <ng-template #sinPrio><span class="field-value">—</span></ng-template>
+            </div>
+            <div class="field">
+              <span class="field-label">Nivel de urgencia</span>
+              <span class="field-value">Urgencia {{ etiquetaUrgencia(resultado) }}</span>
+            </div>
+          </div>
 
-          <dt>Responsable</dt>
-          <dd>{{ resultado.responsable || '—' }}</dd>
+          <div class="prio-bar" *ngIf="nivelPrioridad(resultado) as nivel">
+            <span class="seg" [class.on]="nivel >= 1"></span>
+            <span class="seg" [class.on]="nivel >= 2"></span>
+            <span class="seg" [class.on]="nivel >= 3"></span>
+            <span class="seg" [class.on]="nivel >= 4"></span>
+            <span class="seg" [class.on]="nivel >= 5"></span>
+          </div>
 
-          <dt *ngIf="resultado.razonamiento">Razonamiento</dt>
-          <dd *ngIf="resultado.razonamiento" class="razon">{{ resultado.razonamiento }}</dd>
-        </dl>
+          <div class="justify" *ngIf="resultado.razonamiento">
+            <strong>Justificación:</strong> {{ resultado.razonamiento }}
+          </div>
+
+          <p class="result-id" *ngIf="resultado.id != null">Solicitud #{{ resultado.id }}</p>
+        </div>
       </div>
 
       <!-- Error -->
@@ -152,59 +168,6 @@
         <strong>Error:</strong> {{ error }}
       </div>
     </form>
-  </section>
-
-  <!-- ──────────── OPTIMIZACIÓN A* (solo local/langchain) ──────────── -->
-  <section class="card" *ngIf="soportaOptimizacion">
-    <div class="card-head">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>
-        </svg>
-      </div>
-      <div>
-        <h2>Optimización de asignaciones (A*)</h2>
-        <p>Minimiza el costo total del lote de solicitudes pendientes</p>
-      </div>
-    </div>
-    <div class="card-body">
-      <button type="button" class="btn-secondary" (click)="optimizar()" [disabled]="optimizando">
-        <span class="spinner dark" *ngIf="optimizando"></span>
-        {{ optimizando ? 'Optimizando…' : 'Optimizar asignaciones pendientes' }}
-      </button>
-
-      <div class="alert" *ngIf="errorOptimizacion">
-        <strong>Error:</strong> {{ errorOptimizacion }}
-      </div>
-
-      <ng-container *ngIf="optimizacion">
-        <div class="metrics">
-          <div class="metric"><span>Nodos explorados</span><strong>{{ optimizacion.nodos_explorados }}</strong></div>
-          <div class="metric"><span>Tiempo</span><strong>{{ optimizacion.tiempo_ejecucion_ms | number:'1.0-2' }} ms</strong></div>
-          <div class="metric"><span>Costo total</span><strong>{{ optimizacion.costo_total | number:'1.0-3' }}</strong></div>
-          <div class="metric"><span>Asignaciones</span><strong>{{ optimizacion.asignaciones?.length || 0 }}</strong></div>
-        </div>
-
-        <div class="alert" *ngIf="optimizacion.sin_solucion?.length">
-          Sin funcionario candidato para:
-          <ng-container *ngFor="let id of optimizacion.sin_solucion; let last = last">#{{ id }}<span *ngIf="!last">, </span></ng-container>
-        </div>
-
-        <div class="table-scroll" *ngIf="optimizacion.asignaciones?.length">
-          <table>
-            <thead><tr><th>Solicitud</th><th>Funcionario asignado</th><th>Costo g(n)</th></tr></thead>
-            <tbody>
-              <tr *ngFor="let a of optimizacion.asignaciones">
-                <td>#{{ a.solicitud_id }}</td>
-                <td>{{ a.funcionario_nombre }}</td>
-                <td>{{ a.costo | number:'1.0-3' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ng-container>
-    </div>
   </section>
 
   <!-- ──────────── HISTORIAL ──────────── -->
@@ -264,6 +227,147 @@
           </tbody>
         </table>
       </div>
+    </div>
+  </section>
+
+  <!-- ──────────── COMPARAR TÉCNICAS (SI1) ──────────── -->
+  <section class="card" *ngIf="soportaOptimizacion">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/>
+          <rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Comparar técnicas de búsqueda (SI1)</h2>
+        <p>A*, BFS, DFS y algoritmo genético sobre las solicitudes existentes</p>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <button type="button" class="btn-secondary" (click)="compararTecnicas()" [disabled]="comparando">
+        <span class="spinner dark" *ngIf="comparando"></span>
+        {{ comparando ? 'Comparando técnicas…' : 'Comparar técnicas' }}
+      </button>
+
+      <div class="alert" *ngIf="errorComparacion">
+        <strong>Error:</strong> {{ errorComparacion }}
+      </div>
+
+      <ng-container *ngIf="comparacion">
+        <p class="hint">{{ comparacion.num_solicitudes }} solicitud(es) consideradas en la comparación.</p>
+
+        <!-- Tabla resumen -->
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Técnica</th><th>Tipo</th><th>Costo total</th><th>Esfuerzo</th><th>Tiempo (ms)</th><th>Óptimo</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let t of comparacion.tecnicas">
+                <td class="td-id">{{ t.nombre }}</td>
+                <td>{{ t.tipo }}</td>
+                <td>{{ t.costo_total | number:'1.0-3' }}</td>
+                <td>{{ t.esfuerzo }} <span class="opcional">{{ t.esfuerzo_etiqueta }}</span></td>
+                <td>{{ t.tiempo_ejecucion_ms | number:'1.0-3' }}</td>
+                <td>
+                  <span class="badge" [class.baja]="t.optimo" [class.alta]="!t.optimo">
+                    {{ t.optimo ? 'Sí' : 'No' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Gráficas de barras -->
+        <div class="charts-grid">
+          <div class="chart-box"><canvas #chartCosto></canvas></div>
+          <div class="chart-box"><canvas #chartEsfuerzo></canvas></div>
+          <div class="chart-box"><canvas #chartTiempo></canvas></div>
+        </div>
+
+        <!-- Curva de convergencia del genético -->
+        <div class="chart-box wide" *ngIf="comparacion.convergencia_genetico?.length">
+          <canvas #chartConvergencia></canvas>
+        </div>
+
+        <!-- Árbol de búsqueda A* -->
+        <div *ngIf="comparacion.arbol_astar?.length">
+          <h3 class="subhead">Árbol de búsqueda A*</h3>
+          <div class="tree-scroll">
+            <svg [attr.width]="anchoSvgAstar()" [attr.height]="altoSvgAstar()"
+                 class="astar-tree" [attr.viewBox]="'0 0 ' + anchoSvgAstar() + ' ' + altoSvgAstar()">
+              <line *ngFor="let a of aristasAstar()"
+                    [attr.x1]="a.x1" [attr.y1]="a.y1" [attr.x2]="a.x2" [attr.y2]="a.y2"
+                    stroke="#cbd5e1" stroke-width="2" />
+              <g *ngFor="let n of comparacion.arbol_astar">
+                <circle [attr.cx]="posicionesAstar()[n.id].x" [attr.cy]="posicionesAstar()[n.id].y"
+                        r="26" fill="#2563eb" />
+                <text [attr.x]="posicionesAstar()[n.id].x" [attr.y]="posicionesAstar()[n.id].y - 2"
+                      text-anchor="middle" fill="#fff" font-size="12" font-weight="700">f={{ n.f }}</text>
+                <text [attr.x]="posicionesAstar()[n.id].x" [attr.y]="posicionesAstar()[n.id].y + 12"
+                      text-anchor="middle" fill="#dbeafe" font-size="10">g={{ n.g }} h={{ n.h }}</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </section>
+
+  <!-- ──────────── OPTIMIZACIÓN A* (solo local/langchain) ──────────── -->
+  <section class="card" *ngIf="soportaOptimizacion">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Optimización de asignaciones (A*)</h2>
+        <p>Minimiza el costo total del lote de solicitudes pendientes</p>
+      </div>
+    </div>
+    <div class="card-body">
+      <button type="button" class="btn-secondary" (click)="optimizar()" [disabled]="optimizando">
+        <span class="spinner dark" *ngIf="optimizando"></span>
+        {{ optimizando ? 'Optimizando…' : 'Optimizar asignaciones pendientes' }}
+      </button>
+
+      <div class="alert" *ngIf="errorOptimizacion">
+        <strong>Error:</strong> {{ errorOptimizacion }}
+      </div>
+
+      <ng-container *ngIf="optimizacion">
+        <div class="metrics">
+          <div class="metric"><span>Nodos explorados</span><strong>{{ optimizacion.nodos_explorados }}</strong></div>
+          <div class="metric"><span>Tiempo</span><strong>{{ optimizacion.tiempo_ejecucion_ms | number:'1.0-2' }} ms</strong></div>
+          <div class="metric"><span>Costo total</span><strong>{{ optimizacion.costo_total | number:'1.0-3' }}</strong></div>
+          <div class="metric"><span>Asignaciones</span><strong>{{ optimizacion.asignaciones?.length || 0 }}</strong></div>
+        </div>
+
+        <div class="alert" *ngIf="optimizacion.sin_solucion?.length">
+          Sin funcionario candidato para:
+          <ng-container *ngFor="let id of optimizacion.sin_solucion; let last = last">#{{ id }}<span *ngIf="!last">, </span></ng-container>
+        </div>
+
+        <div class="table-scroll" *ngIf="optimizacion.asignaciones?.length">
+          <table>
+            <thead><tr><th>Solicitud</th><th>Funcionario asignado</th><th>Costo g(n)</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let a of optimizacion.asignaciones">
+                <td>#{{ a.solicitud_id }}</td>
+                <td>{{ a.funcionario_nombre }}</td>
+                <td>{{ a.costo | number:'1.0-3' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
     </div>
   </section>
 
